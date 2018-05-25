@@ -75,7 +75,9 @@ namespace CareerDay.API
                     if(player.X.Value == prizeX && player.Y.Value == prizeY)
                     {
                         await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("GameWinner", game.Id, player.Name);
+                        _mazeService.Games.Remove(game.Id);
                     }
+
 
                     //await Clients.Others.SendAsync("MovePlayer", player.Id, player.X.Value, player.Y.Value);
                 }
@@ -87,7 +89,7 @@ namespace CareerDay.API
         public async Task UserJoin(string user)
         {
             var player = _mazeService.NewPlayer(user, Context.ConnectionId);
-            await Clients.Caller.SendAsync("InitPlayer", player, _mazeService.Games.Where(g => g.Value.Players.Count < 2).Select(g => g.Value.Id).ToList());
+            await Clients.Caller.SendAsync("InitPlayer", player, _mazeService.Games.Where(g => g.Value.Players.Count < 2).Select(gm => new { gm.Value.Id, gm.Value.Name }).ToList());
         }
 
         public async Task JoinGame(int playerId, int gameId)
@@ -110,21 +112,71 @@ namespace CareerDay.API
             game.Players[pIds[1]].Y = game.EndY;
 
             await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("GameUpdate", game.ToViewModel());
-            await Clients.All.SendAsync("GameList", _mazeService.Games.Where(g => g.Value.Players.Count < 2).Select(g => g.Value.Id).ToList());
-            await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("StartGame", game.Id);
+            await Clients.All.SendAsync("GameList", _mazeService.Games.Where(g => g.Value.Players.Count < 2).Select(gm => new { gm.Value.Id, gm.Value.Name }).ToList());
+
+            //for(int i = 3; i > 0; i--)
+            //{
+            //    await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("CountDown", i);
+            //    await Task.Delay(1000);
+            //}
+
+            //await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("StartGame", game.Id);
         }
 
-        public async Task NewGame(int playerId)
+        public async Task PlayerReady(int gameId, int playerId, bool isReady)
+        {
+            if (!_mazeService.Games.ContainsKey(gameId) || !_mazeService.Players.ContainsKey(playerId))
+            {
+                return;
+            }
+            var player = _mazeService.Players[playerId];
+            var game = _mazeService.Games[gameId];
+
+            player.IsReady = isReady;
+
+            await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("PlayerReady", playerId, player.IsReady);
+
+            if(game.Players.Count > 0 && game.Players.Where(p => !p.Value.IsReady).Count() == 0)
+            {
+                for (int i = 3; i > 0; i--)
+                {
+                    await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("CountDown", i);
+                    await Task.Delay(1000);
+                }
+
+                await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("StartGame", game.Id);
+            }
+        }
+
+        public async Task LeaveGame(int gameId, int playerId)
+        {
+            if (!_mazeService.Games.ContainsKey(gameId) || !_mazeService.Players.ContainsKey(playerId))
+            {
+                return;
+            }
+            var player = _mazeService.Players[playerId];
+            var game = _mazeService.Games[gameId];
+
+            if (game.Players.ContainsKey(playerId))
+            {
+                game.Players.Remove(playerId);
+            }
+
+            await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("GameUpdate", game.ToViewModel());
+            await Clients.All.SendAsync("GameList", _mazeService.Games.Where(g => g.Value.Players.Count < 2).Select(gm => new { gm.Value.Id, gm.Value.Name }).ToList());
+        }
+
+        public async Task NewGame(int playerId, string name)
         {
             if (!_mazeService.Players.ContainsKey(playerId))
             {
                 return;
             }
             var player = _mazeService.Players[playerId];
-            var game = _mazeService.NewGame(player);
+            var game = _mazeService.NewGame(player, name);
             var g = game.ToViewModel();
             await Clients.Caller.SendAsync("GameUpdate", g);
-            await Clients.All.SendAsync("GameList", _mazeService.Games.Where(gm => gm.Value.Players.Count < 2).Select(gm => gm.Value.Id).ToList());
+            await Clients.All.SendAsync("GameList", _mazeService.Games.Where(gm => gm.Value.Players.Count < 2).Select(gm => new { gm.Value.Id, gm.Value.Name}).ToList());
             //await Clients.Caller.SendAsync("GameUpdate", JsonConvert.SerializeObject(game.ToViewModel()));
         }
 

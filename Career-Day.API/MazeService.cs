@@ -42,11 +42,12 @@ namespace CareerDay.API
             return player;
         }
 
-        public Game NewGame(Player creater, int size = 18)
+        public Game NewGame(Player creater, string name, int size = 18)
         {
             var game = new Game(size);
 
             game.Id = NextGameId();
+            game.Name = name;
             game.Players.Add(creater.Id, creater);
             Games.Add(game.Id, game);
             
@@ -62,6 +63,7 @@ namespace CareerDay.API
             return new GameViewModel()
             {
                 Id = game.Id,
+                Name = game.Name,
                 Players = game.Players.Select(p => p.Value).ToList(),
                 MazeGrid = game.MazeGrid,
                 StartX = game.StartX,
@@ -93,6 +95,7 @@ namespace CareerDay.API
     public class Game
     {
         public int Id { get; set; }
+        public string Name { get; set; }
         public Dictionary<int, Player> Players { get; set; } = new Dictionary<int, Player>();
         public Direction[][] MazeGrid { get; set; }
         public int StartX { get; set; }
@@ -154,6 +157,7 @@ namespace CareerDay.API
     public class GameViewModel
     {
         public int Id { get; set; }
+        public string Name { get; set; }
         public List<Player> Players { get; set; } = new List<Player>();
         public Direction[][] MazeGrid { get; set; }
         public int StartX { get; set; }
@@ -170,6 +174,7 @@ namespace CareerDay.API
         public string Color { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
+        public bool IsReady { get; set; }
     }
 
     [Flags]
