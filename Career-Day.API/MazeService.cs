@@ -64,7 +64,9 @@ namespace CareerDay.API
             {
                 Id = game.Id,
                 Name = game.Name,
+                playerNumber = game.playerNumber,
                 Players = game.Players.Select(p => p.Value).ToList(),
+                ReadyPlayers = game.ReadyPlayers,
                 MazeGrid = game.MazeGrid,
                 StartX = game.StartX,
                 StartY = game.StartY,
@@ -96,12 +98,16 @@ namespace CareerDay.API
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public int playerNumber { get; set; } = 2;
         public Dictionary<int, Player> Players { get; set; } = new Dictionary<int, Player>();
         public Direction[][] MazeGrid { get; set; }
+        public List<int> ReadyPlayers { get; set; } = new List<int>();
         public int StartX { get; set; }
         public int StartY { get; set; }
         public int EndX { get; set; }
         public int EndY { get; set; }
+        public bool HasStarted { get; set; }
+
         private readonly Random _rng;
         private readonly int _size;
 
@@ -158,8 +164,10 @@ namespace CareerDay.API
     {
         public int Id { get; set; }
         public string Name { get; set; }
+        public int playerNumber { get; set; } = 2;
         public List<Player> Players { get; set; } = new List<Player>();
         public Direction[][] MazeGrid { get; set; }
+        public List<int> ReadyPlayers { get; set; } = new List<int>();
         public int StartX { get; set; }
         public int StartY { get; set; }
         public int EndX { get; set; }
@@ -174,7 +182,6 @@ namespace CareerDay.API
         public string Color { get; set; }
         public int? X { get; set; }
         public int? Y { get; set; }
-        public bool IsReady { get; set; }
     }
 
     [Flags]

@@ -125,18 +125,27 @@ namespace CareerDay.API
 
         public async Task PlayerReady(int gameId, int playerId, bool isReady)
         {
-            if (!_mazeService.Games.ContainsKey(gameId) || !_mazeService.Players.ContainsKey(playerId))
+            if (!_mazeService.Games.ContainsKey(gameId) || !_mazeService.Games[gameId].Players.ContainsKey(playerId))
             {
                 return;
             }
-            var player = _mazeService.Players[playerId];
+
             var game = _mazeService.Games[gameId];
 
-            player.IsReady = isReady;
+            if (isReady && !game.ReadyPlayers.Where(p => p == playerId).Any())
+            {
+                game.ReadyPlayers.Add(playerId);
+            }
 
-            await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("PlayerReady", playerId, player.IsReady);
+            if (!isReady)
+            {
+                game.ReadyPlayers = game.ReadyPlayers.Where(p => p != playerId).ToList();
+            }
 
-            if(game.Players.Count > 0 && game.Players.Where(p => !p.Value.IsReady).Count() == 0)
+
+            await Clients.Clients(game.Players.Select(p => p.Value.ClientId).ToList()).SendAsync("PlayerReady", playerId, isReady);
+
+            if(game.Players.Count == game.playerNumber && game.ReadyPlayers.Count == game.playerNumber)
             {
                 for (int i = 3; i > 0; i--)
                 {
